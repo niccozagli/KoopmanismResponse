@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings
 
 class OneDimensionalMapSettings(BaseSettings):
     alpha: float = 3
-    gamma: float = 4
+    gamma: float = 0.4
     Delta: float = 0.08
 
     M: int = 10**5
