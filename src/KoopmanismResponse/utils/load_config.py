@@ -10,7 +10,7 @@ from KoopmanismResponse.config import OneDimensionalMapSettings
 
 
 @lru_cache
-def one_dimensional_model_settings() -> OneDimensionalMapSettings:
+def get_one_dimensional_model_settings() -> OneDimensionalMapSettings:
     """
     Loads the settings for the One dimensional Map.
     """
