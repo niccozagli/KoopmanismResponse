@@ -1,0 +1,32 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+poetry.lock
+.env
+.venv
+notebooks/.ipynb_checkpoints/
+
+# Data / models / output files
+*.pkl
+*.h5
+*.npz
+*.npy
+*.csv
+*.tsv
+*.json
+*.log
+*.out
+
+# Figures and plots
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+
+# Videos
+*.mp4
+
+# MacOs metadata
+.DS_Store
