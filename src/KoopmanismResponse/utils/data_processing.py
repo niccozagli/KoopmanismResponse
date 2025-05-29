@@ -17,7 +17,7 @@ def get_spectral_properties(K: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.n
         eig(K, left=True, right=True),
     )
 
-    eigenvalues, right_eigenvectors, left_eigenvectors = eig_result
+    eigenvalues, left_eigenvectors, right_eigenvectors = eig_result
 
     # Sort indices by decreasing magnitude of eigenvalues
     sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
@@ -40,31 +40,34 @@ def check_if_complex(obs: np.ndarray):
     return np.iscomplex(obs).any()
 
 
-# def get_acf(
-#     obs: np.ndarray,
-#     Dt: float,
-#     nlags: int = 1500,
-# ):
-#     is_complex = check_if_complex(obs)
-#     if is_complex:
-#         obs_real, obs_imag = np.real(obs), np.imag(obs)
-#         cf_real = sm.tsa.acf(obs_real, nlags=nlags) * np.var(obs_real)
-#         cf_imag = sm.tsa.acf(obs_imag, nlags=nlags) * np.var(obs_imag)
-#         cf = cf_real + cf_imag
-#     else:
-#         cf = sm.tsa.acf(obs, nlags=nlags) * np.var(obs)
+def get_acf(
+    obs: np.ndarray,
+    Dt: float,
+    nlags: int = 1500,
+):
+    is_complex = check_if_complex(obs)
+    if is_complex:
+        obs_real, obs_imag = np.real(obs), np.imag(obs)
+        cf_real = np.asarray(
+            sm.tsa.acf(obs_real, nlags=nlags, qstat=False, alpha=None)
+        ) * np.var(obs_real)
+        cf_imag = np.asarray(
+            sm.tsa.acf(obs_imag, nlags=nlags, qstat=False, alpha=None)
+        ) * np.var(obs_imag)
+        cf = cf_real + cf_imag
+    else:
+        cf = np.asarray(sm.tsa.acf(obs, nlags=nlags)) * np.var(obs)
 
-#     lags = np.linspace(0, nlags * Dt, nlags + 1)
-#     return lags, cf
+    lags = np.linspace(0, nlags * Dt, nlags + 1)
+    return lags, cf
 
 
 def Koopman_correlation_function(t, M, alpha1, alpha2, eigenvalues, to_include=None):
     if to_include is None:
         to_include = len(eigenvalues)
-
     alpha1 = alpha1[1 : to_include + 1]
     alpha2 = alpha2[1 : to_include + 1]
     eigenvalues = eigenvalues[1 : to_include + 1]
     M = M[1 : to_include + 1, 1 : to_include + 1]
 
-    return (alpha1 * np.exp(t * eigenvalues)) @ M @ np.conj(alpha2)
+    return (alpha1 * eigenvalues**t) @ M @ np.conj(alpha2)
