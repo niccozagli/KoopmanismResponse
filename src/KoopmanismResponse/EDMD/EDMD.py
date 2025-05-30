@@ -113,8 +113,8 @@ class Edmd_Fourier(BaseEDMD):
         # Stack wavevectors into an array of shape (N, d)
         K = np.array(self.indices)  # shape (N, d)
 
-        # Compute dot products using einsum: (T, d) · (N, d)ᵗ → (T, N)
-        dot_products = np.einsum("td,nd->tn", data, K)
+        # Compute dot products
+        dot_products = data @ K.T
 
         Psi = np.exp(1j * dot_products)  # shape (T, N)
         return Psi
