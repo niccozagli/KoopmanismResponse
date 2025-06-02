@@ -8,6 +8,7 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 
 from KoopmanismResponse.dynamical_systems.Models import one_dim_map
+from KoopmanismResponse.utils.data_processing import get_observables_response_1dMap
 from KoopmanismResponse.utils.paths import get_data_folder_path
 
 
@@ -15,28 +16,6 @@ def print_memory(label=""):
     process = psutil.Process(os.getpid())
     mem_MB = process.memory_info().rss / 1024**2
     print(f"[{label}] Memory usage: {mem_MB:.2f} MB")
-
-
-def get_observables(trajectory: np.ndarray):
-    x = trajectory
-    observables = (
-        np.cos(x),
-        np.cos(2 * x),
-        np.cos(3 * x),
-        np.cos(4 * x),
-        np.cos(5 * x),
-        np.sin(x),
-        np.sin(2 * x),
-        np.sin(3 * x),
-        np.sin(4 * x),
-        np.sin(5 * x),
-        1 / (2 + np.sin(2 * x)),
-        np.cos(np.atan(3 * np.sin(x))) / np.sin(np.atan(3)),
-        np.atan(20 * np.sin(2 * x)) / np.atan(20),
-        (1 / 2 + 1 / 2 * np.sin(2 * x)) / (2 + np.cos(10 * x)),
-        (x - np.pi) ** 2,
-    )
-    return np.column_stack(observables)
 
 
 def uniform_pert(point: np.ndarray):
@@ -55,8 +34,10 @@ def single_response_uniform_pertubation(xi, eps, avg_obs, base_map):
         perturbed_map.x0 = xi - eps * uniform_pert(xi)
         _, resp_m = perturbed_map.integrate(show_progress=False)
 
-        obs_p = get_observables(resp_p) - avg_obs  # shape (T, N_Observables)
-        obs_m = get_observables(resp_m) - avg_obs
+        obs_p = (
+            get_observables_response_1dMap(resp_p) - avg_obs
+        )  # shape (T, N_Observables)
+        obs_m = get_observables_response_1dMap(resp_m) - avg_obs
 
         return obs_p, obs_m
     except Exception as e:
@@ -67,18 +48,18 @@ def single_response_uniform_pertubation(xi, eps, avg_obs, base_map):
 def main():
     # Unperturbed system
     unperturbed_map = one_dim_map()
-    unperturbed_map.M = int(5 * 10**5)
+    unperturbed_map.M = int(5 * 10**6)
     unperturbed_map.set_random_initial_condition()
 
     t, X = unperturbed_map.integrate()
-    avg_obs = get_observables(X).mean(axis=0)
+    avg_obs = get_observables_response_1dMap(X).mean(axis=0)
 
     # Perturbation experiments settings
     perturbed_map = one_dim_map()
     perturbed_map.M = 30
     perturbed_map.transient = 0
 
-    amplitudes = [0.03, 0.04, 0.08]
+    amplitudes = [0.03, 0.04, 0.06]
     RESP_P = []
     RESP_M = []
 
@@ -98,8 +79,8 @@ def main():
             chunk_X = X[start:end]
 
             results = Parallel(
-                n_jobs=-1, batch_size=10 # pyright: ignore[reportArgumentType]
-            )(  
+                n_jobs=-1, batch_size=10  # pyright: ignore[reportArgumentType]
+            )(
                 delayed(single_response_uniform_pertubation)(
                     chunk_X[i], eps, avg_obs, perturbed_map
                 )
