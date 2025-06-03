@@ -93,3 +93,7 @@ def get_observables_response_1dMap(trajectory: np.ndarray):
         (x - np.pi) ** 2,
     )
     return np.column_stack(observables)
+
+
+def scale_data(data):
+    return data * 2 * np.pi, 2 * np.pi
