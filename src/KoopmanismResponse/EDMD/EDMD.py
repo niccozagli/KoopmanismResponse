@@ -94,19 +94,22 @@ class Edmd_Fourier(BaseEDMD):
         super().__init__(edmd_settings_handler.flight_time)
         self.max_wave_vector = edmd_settings_handler.max_wave_vector
         self.dimension = edmd_settings_handler.dimension
+        self.box_length = edmd_settings_handler.box_length
 
     def _set_indices(self):
         self.indices = fourier_indices(K_max=self.max_wave_vector, dim=self.dimension)
 
     def evaluate_dictionary_batch(self, data: np.ndarray) -> np.ndarray:
         """
-        Evaluate the Fourier dictionary using exp(i * k · x) in fully vectorised way.
+        Evaluate the Fourier dictionary using exp(2pi / L i * k · x) in fully vectorised way.
         Works for 1D or higher-dimensional data.
         """
         if data.ndim == 1:
             data = data[:, np.newaxis]  # Ensure shape (T, d=1)
 
         T, d = data.shape
+        L = self.box_length
+        dimension = self.dimension
         N = len(self.indices)
         Psi = np.empty((T, N), dtype=np.complex128)
 
@@ -116,7 +119,9 @@ class Edmd_Fourier(BaseEDMD):
         # Compute dot products
         dot_products = data @ K.T
 
-        Psi = np.exp(1j * dot_products)  # shape (T, N)
+        Psi = np.exp(2j * np.pi / L * dot_products) / (
+            L ** (dimension / 2)
+        )  # shape (T, N)
         return Psi
 
     def evaluate_koopman_eigenfunctions_batch(

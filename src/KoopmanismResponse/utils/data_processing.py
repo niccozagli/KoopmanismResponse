@@ -95,5 +95,12 @@ def get_observables_response_1dMap(trajectory: np.ndarray):
     return np.column_stack(observables)
 
 
-def scale_data(data):
-    return data * 2 * np.pi, 2 * np.pi
+def get_observables_response_ArnoldMap(trajectory: np.ndarray):
+    x, y = trajectory[:, 0], trajectory[:, 1]
+    observables = (
+        np.sin(2 * np.pi * (x + y)),
+        np.cos(2 * np.pi * (x + y)),
+        np.sin(2 * np.pi * x) * np.cos(2 * np.pi * y),
+        np.cos(2 * np.pi * x) * np.cos(2 * np.pi * y),
+    )
+    return np.column_stack(observables)
