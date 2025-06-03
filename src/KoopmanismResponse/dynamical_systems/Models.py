@@ -11,10 +11,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from KoopmanismResponse.config import OneDimensionalMapSettings
-from KoopmanismResponse.utils.load_config import get_one_dimensional_model_settings
+from KoopmanismResponse.config import ArnoldMapSettings, OneDimensionalMapSettings
+from KoopmanismResponse.utils.load_config import (
+    get_Arnold_model_settings,
+    get_one_dimensional_model_settings,
+)
 
 ONE_DIM_MODEL_SETTINGS = get_one_dimensional_model_settings()
+ARNOLD_MAP_SETTINGS = get_Arnold_model_settings()
 
 
 class one_dim_map:
@@ -65,59 +69,71 @@ class one_dim_map:
         self.trajectory = (t, x)
         return t, x
 
-    # def _diffusion(self, t, Y):
-    #     diffusion = self.noise * np.eye(3)
-    #     return diffusion
 
-    # def integrate_EM(self, show_progress: bool = True, rng: np.random.Generator = None):
-    #     t0, tf = self.t_span
-    #     n_steps = int((tf - t0) / self.dt)
-    #     ts = np.linspace(t0, tf, n_steps + 1)
+class Arnold_map:
+    def __init__(
+        self,
+        model_settings_handler: ArnoldMapSettings = ARNOLD_MAP_SETTINGS,
+    ):
+        self.mu_abs: float = ARNOLD_MAP_SETTINGS.mu_abs
+        self.alpha: float = ARNOLD_MAP_SETTINGS.alpha
+        self.sigma: float = ARNOLD_MAP_SETTINGS.sigma
 
-    #     tsave = ts[: -1 : self.tau]
-    #     ysave = np.zeros((len(tsave), 3))
+        self.M: int = ARNOLD_MAP_SETTINGS.M
+        self.transient: int = ARNOLD_MAP_SETTINGS.transient
 
-    #     yold = self.y0
+        self.Y0: Optional[np.ndarray] = None
+        self.trajectory: Optional[Tuple[np.ndarray, np.ndarray]] = None
 
-    #     if rng is None:
-    #         rng = np.random.default_rng()
+    def _diffusion(self, t, Y):
+        diffusion = self.sigma * np.eye(2)
+        return diffusion
 
-    #     index = 0
-    #     for i in tqdm(range(n_steps), disable=not show_progress):
-    #         t = ts[i]
-    #         f = self._drift(t=t, Y=yold)
-    #         g = self._diffusion(t=t, Y=yold)
-    #         dW = rng.normal(0, np.sqrt(self.dt), size=3)
+    def _drift(self, t, Y):
+        s = np.sum(Y)
+        mu_abs = self.mu_abs
+        alpha = self.alpha
 
-    #         ynew = yold + f * self.dt + g @ dW
+        A = np.array([[2, 1], [1, 1]])
+        num = mu_abs * np.sin(2 * np.pi * s - alpha)
+        den = 1 - mu_abs * np.cos(2 * np.pi * s - alpha)
+        zeta = np.atan(num / den)
 
-    #         if np.mod(i, self.tau) == 0:
-    #             ysave[index, :] = ynew
-    #             index += 1
+        return A @ Y + 1 / np.pi * zeta * np.ones_like(Y)
 
-    #         yold = ynew.copy()
+    def set_random_initial_condition(self):
+        self.Y0 = np.random.uniform(0, 1, size=2)
 
-    #     ind_transient = np.where(tsave >= self.transient)[0][0]
-    #     tsave = tsave[ind_transient:]
-    #     ysave = ysave[ind_transient:, :]
+    def integrate(
+        self, show_progress: bool = True, rng: Optional[np.random.Generator] = None
+    ):
+        if self.Y0 is None:
+            raise ValueError(
+                "Initial condition `Y0` has not been set. Call `set_random_initial_condition()` first."
+            )
 
-    #     self.trajectory = (tsave, ysave)
-    #     return tsave, ysave
+        t = np.arange(0, self.M)
 
-    # def plot3d_trajectory(self, figsize=(8, 6), color="royalblue", alpha=0.8, lw=0.7):
-    #     if self.trajectory is None:
-    #         raise ValueError("No trajectory found. Run integrate() first.")
+        Y = np.zeros((len(t), 2))
 
-    #     ts, ys = self.trajectory
+        Yold = self.Y0
 
-    #     fig = plt.figure(figsize=figsize)
-    #     ax = fig.add_subplot(111, projection="3d")
-    #     ax.plot(ys[:, 0], ys[:, 1], ys[:, 2], color=color, lw=lw, alpha=alpha)
+        if rng is None:
+            rng = np.random.default_rng()
 
-    #     ax.set_xlabel("x")
-    #     ax.set_ylabel("y")
-    #     ax.set_zlabel("z")
-    #     ax.set_title("Lorenz Attractor")
+        for idx, tt in enumerate(tqdm(t, disable=not show_progress)):
 
-    #     plt.tight_layout()
-    #     plt.show()
+            f = self._drift(t=tt, Y=Yold)
+            g = self._diffusion(t=tt, Y=Yold)
+            noise = rng.normal(0, 1, size=2)
+
+            Ynew = np.mod(f + g @ noise, 1)
+            Yold = Ynew.copy()
+
+            Y[tt, :] = Ynew
+
+        tsave = t[self.transient :]
+        Y = Y[self.transient :, :]
+
+        self.trajectory = (tsave, Y)
+        return tsave, Y
