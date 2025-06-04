@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from KoopmanismResponse.config import EdmdFourierSettings
+from KoopmanismResponse.utils.data_processing import get_spectral_properties
 from KoopmanismResponse.utils.load_config import get_edmd_Fourier_settings
 
 # from LorenzEDMD.utils.data_processing import (
@@ -129,3 +130,40 @@ class Edmd_Fourier(BaseEDMD):
     ) -> np.ndarray:
         Psi_X = self.evaluate_dictionary_batch(data)
         return Psi_X @ eigenvectors
+
+
+class TSVD:
+    def __init__(self, rel_threshold: float = 1e-6):
+        self.rel_threshold = rel_threshold
+        self.Ur = None
+        self.Sr = None
+        self.Kreduced = None
+        self.reduced_right_eigvecs = None
+        self.reduced_left_eigvecs = None
+        self.eigenvalues = None
+
+    def decompose(self, edmd: Edmd_Fourier):
+        if edmd.G is not None and edmd.A is not None:
+            U, S, Vh = np.linalg.svd(edmd.G, full_matrices=False)
+            r = np.sum(S > self.rel_threshold * S[0])
+            Ur = U[:, :r]
+            Sr_inv = np.diag(1 / S[:r])
+            K_reduced = Sr_inv @ (Ur.T.conj() @ edmd.A @ Ur)
+
+            self.Ur = Ur
+            self.Sr = S[:r]
+            self.Kreduced = K_reduced
+            return K_reduced
+
+    def get_spectral_properties(self):
+        if self.Kreduced is not None:
+            eigenvalues, left_eigenvectors, right_eigenvectors = (
+                get_spectral_properties(self.Kreduced)
+            )  # right_eigenvectors , left_eigenvectors
+            self.reduced_right_eigvecs = right_eigenvectors
+            self.reduced_left_eigvecs = left_eigenvectors
+            self.eigenvalues = eigenvalues
+        else:
+            raise RuntimeError(
+                "You must call `decompose()` before computing spectral properties."
+            )

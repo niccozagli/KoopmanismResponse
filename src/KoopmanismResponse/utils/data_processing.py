@@ -70,7 +70,7 @@ def Koopman_correlation_function(t, M, alpha1, alpha2, eigenvalues, to_include=N
     eigenvalues = eigenvalues[1 : to_include + 1]
     M = M[1 : to_include + 1, 1 : to_include + 1]
 
-    return (alpha1 * eigenvalues**t) @ M @ np.conj(alpha2)
+    return np.conj(alpha2) @ M @ (alpha1 * eigenvalues**t)
 
 
 def get_observables_response_1dMap(trajectory: np.ndarray):
