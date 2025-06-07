@@ -58,7 +58,7 @@ def single_response_experiment(xi, eps, avg_obs, base_map, perturbation, seed=No
 def main():
     # Unperturbed system
     unperturbed_map = Arnold_map()
-    unperturbed_map.M = int(5 * 10**5)
+    unperturbed_map.M = int(10**6)
     unperturbed_map.set_random_initial_condition()
 
     t, X = unperturbed_map.integrate()
@@ -68,7 +68,7 @@ def main():
     perturbed_map = Arnold_map()
     perturbed_map.M = 50
     perturbed_map.transient = 0
-    amplitudes = [0.003, 0.004, 0.005]  # Coefficient perturbation
+    amplitudes = [0.01, 0.02, 0.03]  # Coefficient perturbation
     # amplitudes = [0.02, 0.04, 0.05]  # Sinusoidal perturbation
     RESP_P = []
     RESP_M = []

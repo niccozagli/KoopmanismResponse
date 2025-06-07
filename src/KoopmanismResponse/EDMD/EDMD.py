@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import product
-from typing import DefaultDict, Dict, List, Tuple, cast
+from typing import DefaultDict, Dict, List, Optional, Tuple, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -52,7 +52,9 @@ class BaseEDMD(ABC):
             )
         return data[: -self.flight_time], data[self.flight_time :]
 
-    def perform_edmd(self, data: np.ndarray, batch_size: int = 10_000) -> np.ndarray:
+    def perform_edmd(
+        self, data: np.ndarray, batch_size: int = 10_000, show_progress: bool = True
+    ) -> np.ndarray:
 
         if batch_size <= 0:
             raise ValueError("batch_size must be a positive integer")
@@ -64,7 +66,7 @@ class BaseEDMD(ABC):
         G = np.zeros((n_features, n_features), dtype=np.complex128)
         A = np.zeros((n_features, n_features), dtype=np.complex128)
 
-        for start in tqdm(range(0, N, batch_size)):
+        for start in tqdm(range(0, N, batch_size), disable=not show_progress):
             end = min(start + batch_size, N)
             X_batch = X[start:end]
             Y_batch = Y[start:end]
@@ -135,29 +137,34 @@ class Edmd_Fourier(BaseEDMD):
 class TSVD:
     def __init__(self, rel_threshold: float = 1e-6):
         self.rel_threshold = rel_threshold
-        self.Ur = None
-        self.Sr = None
-        self.Kreduced = None
-        self.reduced_right_eigvecs = None
-        self.reduced_left_eigvecs = None
-        self.eigenvalues = None
+        self.Ur: Optional[np.ndarray] = None
+        self.Sr: Optional[np.ndarray] = None
+        self.Kreduced: Optional[np.ndarray] = None
+        self.reduced_right_eigvecs: Optional[np.ndarray] = None
+        self.reduced_left_eigvecs: Optional[np.ndarray] = None
+        self.eigenvalues: Optional[np.ndarray] = None
 
     def decompose(self, edmd: Edmd_Fourier):
-        if edmd.G is not None and edmd.A is not None:
-            U, S, Vh = np.linalg.svd(edmd.G, full_matrices=False)
-            r = np.sum(S > self.rel_threshold * S[0])
-            Ur = U[:, :r]
-            Sr_inv = np.diag(1 / S[:r])
-            K_reduced = Sr_inv @ (Ur.T.conj() @ edmd.A @ Ur)
+        if edmd.G is None or edmd.A is None:
+            raise RuntimeError("Edmd has not been performed yet!")
+        U, S, Vh = np.linalg.svd(edmd.G, full_matrices=False)
+        # Truncate
+        r = np.sum(S > self.rel_threshold * S[0])
+        Ur = U[:, :r]
+        Sr = S[:r]
+        Sigma_sqr_inv = np.diag(1 / np.sqrt(Sr))
 
-            self.Ur = Ur
-            self.Sr = S[:r]
-            self.Kreduced = K_reduced
-            return K_reduced
+        Ar = Sigma_sqr_inv @ Ur.T.conj() @ edmd.A @ Ur @ Sigma_sqr_inv
+
+        K_reduced = Ar
+        self.Ur = Ur
+        self.Sr = S[:r]
+        self.Kreduced = K_reduced
+        return K_reduced
 
     def get_spectral_properties(self):
         if self.Kreduced is not None:
-            eigenvalues, left_eigenvectors, right_eigenvectors = (
+            eigenvalues, right_eigenvectors, left_eigenvectors = (
                 get_spectral_properties(self.Kreduced)
             )  # right_eigenvectors , left_eigenvectors
             self.reduced_right_eigvecs = right_eigenvectors
@@ -167,3 +174,10 @@ class TSVD:
             raise RuntimeError(
                 "You must call `decompose()` before computing spectral properties."
             )
+
+    def project_reduced_space(self, full_projections):
+        if self.Sr is None or self.Ur is None:
+            raise RuntimeError("You must call 'decompose()' before projecting")
+
+        Sigma_sqr = np.diag(np.sqrt(self.Sr))
+        return Sigma_sqr @ self.Ur.T.conj() @ full_projections
