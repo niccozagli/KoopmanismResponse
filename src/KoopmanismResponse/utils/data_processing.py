@@ -70,7 +70,7 @@ def Koopman_correlation_function(t, M, alpha1, alpha2, eigenvalues, to_include=N
     eigenvalues = eigenvalues[1 : to_include + 1]
     M = M[1 : to_include + 1, 1 : to_include + 1]
 
-    return (alpha1 * eigenvalues**t) @ M @ np.conj(alpha2)
+    return np.conj(alpha2) @ M @ (alpha1 * eigenvalues**t)
 
 
 def get_observables_response_1dMap(trajectory: np.ndarray):
@@ -95,5 +95,12 @@ def get_observables_response_1dMap(trajectory: np.ndarray):
     return np.column_stack(observables)
 
 
-def scale_data(data):
-    return data * 2 * np.pi, 2 * np.pi
+def get_observables_response_ArnoldMap(trajectory: np.ndarray):
+    x, y = trajectory[:, 0], trajectory[:, 1]
+    observables = (
+        np.sin(2 * np.pi * (x + y)),
+        np.cos(2 * np.pi * (x + y)),
+        np.sin(2 * np.pi * x) * np.cos(2 * np.pi * y),
+        np.cos(2 * np.pi * x) * np.cos(2 * np.pi * y),
+    )
+    return np.column_stack(observables)

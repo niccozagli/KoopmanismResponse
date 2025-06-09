@@ -32,3 +32,4 @@ class EdmdFourierSettings(BaseSettings):
     max_wave_vector: int = 5
     flight_time: int = 1
     dimension: int = 2
+    box_length: float = 2 * np.pi
