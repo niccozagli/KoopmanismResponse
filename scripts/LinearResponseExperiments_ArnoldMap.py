@@ -68,8 +68,8 @@ def main():
     perturbed_map = Arnold_map()
     perturbed_map.M = 50
     perturbed_map.transient = 0
-    amplitudes = [0.01, 0.02, 0.03]  # Coefficient perturbation
-    # amplitudes = [0.02, 0.04, 0.05]  # Sinusoidal perturbation
+    # amplitudes = [0.01, 0.02, 0.03]  # Coefficient perturbation
+    amplitudes = [0.02, 0.04, 0.05]  # Sinusoidal perturbation
     RESP_P = []
     RESP_M = []
 
@@ -96,7 +96,7 @@ def main():
                     eps,
                     avg_obs,
                     perturbed_map,
-                    perturbation=coefficient_perturbation,
+                    perturbation=sinusoidal_perturbation,
                 )
                 for i in range(chunk_X.shape[0])
             )
@@ -130,7 +130,7 @@ def main():
         "Unperturbed Settings": unperturbed_map,
     }
     data_path = get_data_folder_path()
-    f_name = "response_two_dimensional_map_coefficient_perturbation.pkl"
+    f_name = "response_two_dimensional_map_sinusoidal_perturbation.pkl"
 
     with open(data_path / f_name, "wb") as f:
         pickle.dump(dictionary, f)
