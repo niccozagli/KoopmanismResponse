@@ -23,7 +23,7 @@ pytest = "*"
 black = "*"
 isort = "*"
 mypy = "*"
-pre-commit = "*"
+pre-commit = "^4.2.0"
 
 [tool.black]
 line-length = 88

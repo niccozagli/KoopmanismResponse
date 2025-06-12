@@ -1,7 +1,8 @@
 # 🧪 Koopmanism and Response Theory
 
-This code is for reproducing the paper
+This code is for reproducing the paper "Bridging the Gap between Koopmanism and Response Theory: Using Natural Variability to Predict Forced Response" to appear in SIAM Journal on Applied Dynamical Systems. 
 
+It performs Extended Dynamic Mode Decomposition to estimate the spectral properties of the Koopman/Kolmogorov operator, from which the response to perturbations of chaotic systems is estimated. 
 
 ## 🚀 Features
 
@@ -23,4 +24,10 @@ Clone the repository and run the setup script:
 git clone git@github.com:niccozagli/KoopmanismResponse.git
 cd KoopmanismResponse
 bash set_up.sh
+```
+---
+##  How to use 
 
+In the notebooks folder you can find the two notebooks to reproduce the results for the chaotic systems investigated in the paper. In the scripts folder you can find the shell scripts to run the direct numerical response experiments.
+
+The numerical results on the double-well system can be found in the "double well" folder.
