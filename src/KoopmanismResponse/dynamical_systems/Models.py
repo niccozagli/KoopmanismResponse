@@ -54,13 +54,23 @@ class one_dim_map:
                 "Initial condition `x0` has not been set. Call `set_random_initial_condition()` first."
             )
 
-        xold = self.x0
+        xold_arr = np.asarray(self.x0).squeeze()
+        if xold_arr.ndim != 0:
+            raise ValueError(
+                f"Initial condition `x0` must be scalar-like, got shape {np.shape(self.x0)}"
+            )
+        xold = float(xold_arr)
         tsave = np.arange(0, self.M)
         x = np.zeros(len(tsave))
 
         for idx, t in enumerate(tqdm(tsave, disable=not show_progress)):
-            xnew = self._drift(t=t, x=xold)
-            xold = xnew.copy()
+            xnew_arr = np.asarray(self._drift(t=t, x=xold)).squeeze()
+            if xnew_arr.ndim != 0:
+                raise ValueError(
+                    f"Drift returned non-scalar state at step {idx}: shape {np.shape(xnew_arr)}"
+                )
+            xnew = float(xnew_arr)
+            xold = xnew
             x[idx] = xnew
 
         t = tsave[self.transient :]

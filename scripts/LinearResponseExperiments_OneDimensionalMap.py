@@ -19,10 +19,10 @@ def print_memory(label=""):
 
 
 def uniform_pert(point: np.ndarray):
-    return np.array([1])
+    return 1.0
 
 
-def single_response_uniform_pertubation(xi, eps, avg_obs, base_map, seed):
+def single_response_uniform_pertubation(xi, eps, avg_obs, base_map, seed=None):
     try:
         perturbed_map = one_dim_map()
         perturbed_map.M = base_map.M
